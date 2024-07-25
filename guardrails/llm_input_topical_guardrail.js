@@ -1,6 +1,12 @@
 // Guardrails function for Voiceflow. 
 // ref: https://cookbook.openai.com/examples/how_to_use_guardrails
 
+/*
+Input variables: openaiApiKey, userRequest
+Output variables: completion
+Paths: success, error
+*/
+
 /**
  * Main function that performs the guardrail checks and returns the appropriate response.
  * @param {Object} args - The input arguments.
@@ -32,7 +38,7 @@ export default async function main(args) {
             messages: [
                 {
                     "role": "system",
-                    "content": "Your role is to assess whether the user question is allowed or not. The allowed topics are cats and dogs. If the topic is allowed, say 'allowed' otherwise say 'not_allowed'",
+                    "content": "Your role is to assess whether the user question is allowed or not. The allowed topics are pediatric dentistry and children's dental health. If the topic is allowed, say 'allowed' otherwise say 'not_allowed'",
                 },
                 {"role": "user", "content": userRequest},
             ],
@@ -52,7 +58,7 @@ export default async function main(args) {
         if (!guardrailResponse.ok) {
             throw new Error(`HTTP error! status: ${guardrailResponse.status}`);
         }
-        const guardrailBody = await guardrailResponse.json;
+        const guardrailBody = await guardrailResponse.json();
         return guardrailBody.choices[0].message.content;
     }
 
@@ -92,7 +98,7 @@ export default async function main(args) {
         const guardrailResponse = await checkTopicalGuardrail();
         if (guardrailResponse === "not_allowed") {
             return {
-                outputVars: { completion: "I can only talk about cats and dogs, the best animals that ever lived." },
+                outputVars: { completion: "I can only talk about pediatric dentistry and children's dental health. Please ask a related question." },
                 next: { path: 'success' },
                 trace: [{ type: "text", payload: { message: "Topical guardrail triggered" } }]
             };
