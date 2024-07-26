@@ -162,7 +162,19 @@ You can use these responses to test the moderation function thoroughly, ensuring
 
 */
 
-//Updated function to return message and score as an output. 
+//llm output guardrail full - Updated function to return message and score as an output. 
+
+/*
+Output Variables:
+
+trace: This is an array containing debug messages that provide information about the execution flow and any errors encountered.
+output: This object contains the **message** and **score** from the moderation check.
+
+Paths:
+error: This path is returned when there is a missing required input variable or an error occurs during the execution of the function.
+moderation_triggered: This path is returned when the moderation guardrail is triggered, indicating that the content has a score of 3 or higher.
+continue: This path is returned when the content passes the moderation guardrail check, indicating that the content has a score lower than 3.
+*/
 
 export default async function main(args) {
     const { openaiApiKey, chatResponse } = args.inputVars;
