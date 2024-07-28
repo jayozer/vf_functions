@@ -188,7 +188,9 @@ export default async function main(args) {
 
 }
 
-
+/*
+inputVars: prompt, perplexityApiKey
+*/
 
 
 // content: `You are an AI assistant for Poppy Kids Pediatric Dentistry in Novato, CA. Your role is to provide brief, clear, and accurate information about pediatric dentistry.

@@ -117,3 +117,132 @@ export default async function main(args) {
         };
     }
 }
+
+
+
+// Simplified version that only checks the user question to topical guardrail. This version does not return the chat response.
+export default async function main(args) {
+    const { openaiApiKey, userRequest } = args.inputVars;
+
+    if (!userRequest || !openaiApiKey) {
+        return {
+            next: { path: 'error' },
+            trace: [{ type: "debug", payload: { message: "Missing required input variable: userRequest or openaiApiKey" } }]
+        };
+    }
+
+    const url = `https://api.openai.com/v1/chat/completions`;
+    const domain = "children's dental health and pediatric dentistry";
+    const topical_guardrail_criteria = `
+    Assess whether the user question is allowed or not. The allowed topics are children's dental health and pediatric dentistry. If the topic is allowed, say 'allowed' otherwise say 'not_allowed'.`;
+    const topical_guardrail_steps = `
+        1. Read the user question and the criteria carefully.
+    2. Determine if the user question falls within the allowed topics.
+    3. Respond with 'allowed' if the topic is allowed, otherwise respond with 'not_allowed'.`;
+
+    async function checkTopicalGuardrail() {
+        const moderationSystemPrompt = `You are a moderation assistant. Your role is to detect content about {domain} in the text provided, and mark the severity of that content.
+
+        ## {domain}
+        
+        ### Criteria
+        
+        {scoring_criteria}
+        
+        ### Instructions
+        
+        {scoring_steps}
+        
+        ### Content
+        
+        {content}
+        
+        ### Evaluation (allowed/not_allowed)`;
+      
+        const modMessages = [
+            {
+                "role": "user",
+                "content": moderationSystemPrompt.replace('{domain}', domain)
+                                                  .replace('{scoring_criteria}', topical_guardrail_criteria)
+                                                  .replace('{scoring_steps}', topical_guardrail_steps)
+                                                  .replace('{content}', userRequest)
+            },
+        ];
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: modMessages,
+                temperature: 0
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+
+        const data = await response.json;
+        
+        return data.choices[0].message.content;
+    }
+
+    try {
+        const guardrailResponse = await checkTopicalGuardrail();
+        if (guardrailResponse === "not_allowed") {
+            return {
+                next: { path: 'moderation_triggered' },
+                trace: [{ type: "debug", payload: { message: "Topical guardrail triggered" } }]
+            };
+        } else {
+            return {
+                next: { path: 'continue' },
+                trace: [{ type: "debug", payload: { message: "Passed topical guardrail" } }]
+            };
+        }
+    } catch (error) {
+        return {
+            next: { path: 'error' },
+            trace: [{ type: "debug", payload: { message: `Error in topical guardrail: ${error.message}` } }]
+        };
+    }
+}
+
+//Test:
+/*
+Here are some questions to thoroughly test the function, ensuring that it accurately identifies whether the content is related to pediatric dentistry and children's dental health:
+
+1. **Allowed Topics:**
+   - "What are the benefits of fluoride treatments for children's teeth?"
+   - "How often should children visit the dentist for checkups?"
+   - "What are the signs of teething in infants?"
+   - "Can you recommend a good toothpaste for toddlers?"
+   - "Is it normal for a child to lose their first tooth at age 5?"
+
+2. **Not Allowed Topics:**
+   - "What is the best breed of dog for a family with young children?"
+   - "Can you give me some tips for training my puppy?"
+   - "What are the health benefits of owning a cat?"
+   - "Which cat breeds are hypoallergenic?"
+   - "What kind of food should I feed my dog?"
+
+3. **Edge Cases (Ambiguous):**
+   - "Is it safe for children to use mouthwash?" (Allowed)
+   - "What are some good dietary habits for maintaining healthy teeth in children?" (Allowed)
+   - "Can I give my baby a teething toy?" (Allowed)
+   - "How can I prevent cavities in my child's teeth?" (Allowed)
+   - "What are the best ways to care for a pet's dental health?" (Not Allowed)
+
+4. **Mixed Topics:**
+   - "My child and dog both have bad breath. What can I do?" (Not Allowed)
+   - "Can you recommend a dentist who is good with both children and pets?" (Not Allowed)
+   - "What are the benefits of regular dental checkups for children and pets?" (Not Allowed)
+   - "How often should children and dogs brush their teeth?" (Not Allowed)
+   - "What are some common dental issues in children and how to prevent them?" (Allowed)
+
+These questions will help ensure that the function correctly filters content based on the specified allowed topics of pediatric dentistry and children's dental health, while rejecting unrelated or ambiguous topics.
+*/
