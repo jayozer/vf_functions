@@ -55,7 +55,8 @@ export default async function main(args) {
         "role": "user",
         "content": userQuestion
       }
-    ]
+    ],
+    temperature: 0.1,
   };
  
   // Configure the fetch request headers and body
