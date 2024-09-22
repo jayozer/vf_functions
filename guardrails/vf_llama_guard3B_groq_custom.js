@@ -1,8 +1,16 @@
+/**
+ * Main function for content moderation using LLaMA Guard via Groq API
+ * @param {Object} args - The input arguments
+ * @param {Object} args.inputVars - The input variables
+ * @param {string} args.inputVars.last_utterance - The user's last utterance to be moderated
+ * @param {string} args.inputVars.groqApiKey - The API key for Groq
+ * @returns {Object} - The result object containing outputVars, next path, and trace
+ */
 export default async function main(args) {
   const { inputVars } = args;
   let { last_utterance, groqApiKey } = inputVars;
 
-  // Remove extra spaces and convert to lowercase
+  // Sanitize input
   last_utterance = last_utterance?.trim().toLowerCase();
   groqApiKey = groqApiKey?.trim();
   
@@ -70,7 +78,7 @@ export default async function main(args) {
   }
 
   try {
-    // Check for Groq API key
+    // Validate Groq API key
     if (!groqApiKey) {
       return {
         outputVars: {
@@ -90,7 +98,7 @@ export default async function main(args) {
       };
     }
 
-    // Check for last_utterance
+    // Validate last_utterance
     if (!last_utterance) {
       return {
         outputVars: {
@@ -110,6 +118,7 @@ export default async function main(args) {
       };
     }
 
+    // Prepare API request to Groq
     const url = 'https://api.groq.com/openai/v1/chat/completions';
     const options = {
       method: 'POST',
@@ -132,12 +141,15 @@ export default async function main(args) {
       })
     };
 
+    // Make API request
     const response = await fetch(url, options);
     const result = await response.json;
 
+    // Process API response
     if (response.ok && result?.choices?.[0]?.message?.content) {
       let answer = result.choices[0].message.content.trim().toLowerCase();
 
+      // Handle safe content
       if (answer.startsWith("safe")) {
         // Content is safe, return the original last_utterance
         return {
@@ -157,7 +169,7 @@ export default async function main(args) {
           ],
         };
       } else {
-        // Content is unsafe, extract the S code and return the corresponding safe response
+        // Handle unsafe content
         const match = answer.match(/s(\d+)/);
         if (match) {
           const sCode = `S${match[1]}`;
@@ -180,7 +192,7 @@ export default async function main(args) {
             };
           }
         }
-        // If no specific S code is found or matched, return a generic safe response
+        // Fallback for unspecified unsafe content
         return {
           outputVars: {
             answer: "I'm sorry, but I can't respond to that. Let's talk about something else!"
@@ -235,9 +247,8 @@ export default async function main(args) {
     };
   }
 
-
-// Inputs: groqApiKey, last_utterance
-// Outputs: answer, error
-// Paths: success, error
-
+  // Input/Output documentation
+  // Inputs: groqApiKey, last_utterance
+  // Outputs: answer, error
+  // Paths: success, error
 }
