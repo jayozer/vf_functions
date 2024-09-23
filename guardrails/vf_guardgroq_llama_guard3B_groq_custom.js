@@ -22,7 +22,7 @@ export default async function main(args) {
       S2: Non-Violent Crimes
       S3: Sex-Related Crimes
       S4: Child Sexual Exploitation
-      S5: Defamation --
+      S5: Defamation
       S6: Specialized Advice
       S7: Privacy
       S8: Intellectual Property
